@@ -394,7 +394,29 @@
       keepAwake();
 
       if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-        window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
+        // Self-updating: the SW is cache-first, so without this an open (or suspended Home Screen)
+        // app keeps showing the old cached page even after a new version is deployed.
+        // When a new worker takes control, reload once so the new index.html/player.js load.
+        // (Skipped on first install, when there was no previous controller.)
+        const hadController = !!navigator.serviceWorker.controller;
+        let reloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!hadController || reloading) return;
+          reloading = true;
+          location.reload();
+        });
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' }).then(reg => {
+            // iPad Home Screen apps are suspended rather than relaunched, so also check for a
+            // new version whenever the app comes back to the foreground (at most every 30 min).
+            let lastCheck = Date.now();
+            document.addEventListener('visibilitychange', () => {
+              if (document.hidden || Date.now() - lastCheck < 30 * 60 * 1000) return;
+              lastCheck = Date.now();
+              reg.update().catch(() => {});
+            });
+          }).catch(() => {});
+        });
       }
     })();
   </script>

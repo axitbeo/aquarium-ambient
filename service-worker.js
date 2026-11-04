@@ -1,6 +1,6 @@
 // App shell cache: bump the version whenever index.html, player.js or other CORE files change.
 // (library.js is fetched network-first, so editing it does NOT require a bump.)
-const CACHE_NAME = "aquarium-ambient-v3";
+const CACHE_NAME = "aquarium-ambient-v4";
 // Media cache name is permanent: versioning is per file (`?v=N` from library.js), so this
 // cache is never wiped by app updates. Only the user's actions in the player panel add or
 // remove media from it. Do not rename.
