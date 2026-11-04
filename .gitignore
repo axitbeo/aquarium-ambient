@@ -1,0 +1,6 @@
+# Claude Code tooling: not part of the deployed app
+.claude/
+skills-lock.json
+
+# Source originals not referenced by library.js (kept locally, not deployed)
+media/85674-591865490.mp4

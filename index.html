@@ -106,6 +106,28 @@
     .fish.f1 { top:56%; --duration:29s; --delay:-6s; --scale:1.05; }
     .fish.f3 { top:42%; --duration:39s; --delay:-27s; --scale:.55; --fish-top:#f5d88d; --fish-bottom:#bf9b55; }
     .fish.f4 { top:68%; --duration:44s; --delay:-19s; --scale:.68; --fish-top:#b5d5e7; --fish-bottom:#5b91b1; }
+    /* ---- V2 video layer ----
+       Sits above the CSS scene, below bubbles. Invisible until the video is actually
+       playing (body.video-on), then the CSS scene is hidden (body.video-ready) so it
+       stops costing paint/animation time. If the video fails, the CSS scene remains. */
+    .video-bg {
+      position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;
+      opacity:0; transition:opacity 1.6s ease; pointer-events:none; background:transparent;
+    }
+    /* V3 crossfade: .front is the visible video; .incoming fades in above it, so the
+       outgoing video stays opaque underneath and no black frame can show. */
+    .video-bg.front { opacity:1; z-index:1; }
+    .video-bg.incoming { z-index:2; }
+    .vignette, #bubbles { position:absolute; inset:0; z-index:3; pointer-events:none; }
+    /* Cheap static vignette for depth over the footage (no filters, no animation). */
+    .vignette { position:absolute; inset:0; display:none; pointer-events:none;
+      background:radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(2,14,22,.55) 100%); }
+    body.video-on .vignette { display:block; }
+    body.video-ready .sun-rays, body.video-ready .water-shimmer, body.video-ready .haze,
+    body.video-ready .plant, body.video-ready .rock, body.video-ready .floor,
+    body.video-ready .fish { display:none; }
+    /* Over real footage keep only a few subtle bubbles. */
+    body.video-ready .bubble:nth-child(n+11) { display:none; }
     .bubble {
       position:absolute; bottom:-40px; width:var(--size,7px); height:var(--size,7px); border:1px solid rgba(208,250,255,.5);
       border-radius:50%; background:rgba(203,248,255,.08); box-shadow:inset -2px -2px 4px rgba(255,255,255,.12);
@@ -133,8 +155,9 @@
     }
     body.show-controls .controls { opacity:1; pointer-events:auto; }
     .control {
-      border:1px solid rgba(224,250,255,.22); background:rgba(2,22,34,.38); color:rgba(240,255,255,.9);
-      backdrop-filter:blur(14px); border-radius:999px; min-width:44px; height:44px; padding:0 14px;
+      /* V2: solid tint instead of backdrop-filter, which is costly over playing video. */
+      border:1px solid rgba(224,250,255,.22); background:rgba(2,22,34,.62); color:rgba(240,255,255,.9);
+      border-radius:999px; min-width:44px; height:44px; padding:0 14px;
       font:500 12px -apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:.04em;
     }
     .hint { position:absolute; z-index:10; left:50%; bottom:calc(22px + var(--safe-bottom)); transform:translateX(-50%);
@@ -142,6 +165,78 @@
     body.show-controls .hint { opacity:0; }
     body.clock-hidden .clock-wrap { opacity:0; transition:opacity .5s; }
     .clock-wrap { transition:opacity .5s; }
+    /* ---- V3 player panel ----
+       display:none while closed, so it costs nothing over the aquarium. Solid tint, no
+       backdrop-filter (expensive over video). All touch targets >= 44px. */
+    .player-scrim { position:fixed; inset:0; z-index:19; display:none; background:rgba(1,10,16,.25); }
+    .player {
+      position:fixed; z-index:20; top:0; right:0; bottom:0; width:min(440px, 100vw);
+      display:none; flex-direction:column; gap:14px;
+      padding:calc(16px + var(--safe-top)) 18px calc(14px + var(--safe-bottom));
+      background:rgba(3,19,29,.95); border-left:1px solid rgba(224,250,255,.1);
+      box-shadow:-24px 0 60px rgba(0,0,0,.35); color:var(--soft);
+      font-size:13px; letter-spacing:.02em;
+    }
+    body.panel-open .player-scrim { display:block; }
+    body.panel-open .player { display:flex; animation:panelIn .28s ease-out; }
+    body.panel-open .hint, body.panel-open .controls { opacity:0; pointer-events:none; }
+    @keyframes panelIn { from { transform:translateX(28px); opacity:0; } }
+    .player button { font:inherit; color:inherit; cursor:pointer; -webkit-appearance:none; appearance:none; }
+    .player button:disabled { opacity:.4; cursor:default; }
+    .player-head { display:flex; align-items:center; gap:10px; }
+    .player-tabs { flex:1; display:flex; padding:4px; border-radius:999px; background:rgba(224,250,255,.06); }
+    .tab { flex:1; min-height:40px; border:0; border-radius:999px; background:transparent; font-weight:500; color:var(--muted) !important; }
+    .tab.on { background:rgba(97,217,232,.16); color:#e9fdff !important; }
+    .player-close { width:44px; height:44px; border-radius:50%; border:1px solid rgba(224,250,255,.16); background:transparent; font-size:16px !important; }
+    .player-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; gap:14px; padding-right:2px; }
+    .player-foot { font-size:11px; color:var(--muted); letter-spacing:.06em; display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-height:36px; }
+    .prow { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .seg { display:flex; border:1px solid rgba(224,250,255,.14); border-radius:999px; overflow:hidden; }
+    .seg button { min-height:44px; padding:0 12px; border:0; background:transparent; font-size:12px !important; color:var(--muted) !important; }
+    .seg button.on { background:rgba(97,217,232,.18); color:#e9fdff !important; }
+    .transport { display:flex; gap:6px; }
+    .transport button, .pact {
+      min-height:44px; padding:0 14px; border-radius:999px; border:1px solid rgba(224,250,255,.18);
+      background:rgba(97,217,232,.1); font-size:12px !important; white-space:nowrap;
+    }
+    .pact { min-height:36px; padding:0 12px; }
+    .pact.ghost { background:transparent; color:var(--muted) !important; }
+    .cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .card { display:flex; flex-direction:column; gap:8px; padding:8px; border-radius:16px; background:rgba(224,250,255,.04); border:1px solid transparent; }
+    .card.current { border-color:rgba(97,217,232,.45); background:rgba(97,217,232,.07); }
+    .card-main { display:flex; flex-direction:column; gap:8px; padding:0; border:0; background:none; text-align:left; }
+    .thumb { position:relative; display:block; width:100%; aspect-ratio:16/9; border-radius:10px; overflow:hidden;
+      background:linear-gradient(160deg,#0d4a5e,#06283d 60%,#031827); }
+    .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .now { position:absolute; left:8px; bottom:8px; padding:3px 8px; border-radius:999px; font-size:10px; letter-spacing:.08em;
+      text-transform:uppercase; background:rgba(3,19,29,.78); color:#bff6ff; }
+    .ctitle, .ttitle { font-size:13px; font-weight:500; color:#eafcff; }
+    .cmeta, .tmeta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .tracks { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+    .track { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px 6px 4px; border-radius:14px;
+      background:rgba(224,250,255,.04); border:1px solid transparent; flex-wrap:wrap; }
+    .track.current { border-color:rgba(97,217,232,.45); background:rgba(97,217,232,.07); }
+    .track-main { flex:1; min-height:44px; display:flex; align-items:center; gap:10px; border:0; background:none; text-align:left; padding:0 6px; }
+    .tdot { width:8px; height:8px; border-radius:50%; background:rgba(224,250,255,.2); flex:none; }
+    .track.current .tdot { background:#83e6ce; box-shadow:0 0 10px #83e6ce; }
+    /* Cache status: shape + colour + text, so states are distinguishable at a glance. */
+    .badge { display:inline-flex; align-items:center; min-height:24px; padding:0 9px; border-radius:999px; font-size:10.5px;
+      letter-spacing:.06em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap; }
+    .s-available, .s-offline { color:rgba(210,239,246,.7); }
+    .s-cached { color:#06231d; background:#83e6ce; border-color:#83e6ce; }
+    .s-update { color:#ffd27a; }
+    .s-missing { color:#ff9a8f; border-style:dashed; }
+    .s-error { color:#ff9a8f; }
+    .s-downloading { color:#9fe9f5; background:rgba(97,217,232,.12); }
+    .switch { display:inline-flex; align-items:center; gap:10px; min-height:44px; padding:0 14px 0 6px; border-radius:999px;
+      border:1px solid rgba(224,250,255,.18); background:transparent; }
+    .knob { width:34px; height:20px; border-radius:999px; background:rgba(224,250,255,.18); position:relative; transition:background .2s; }
+    .knob:after { content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#dff8fb; transition:transform .2s; }
+    .switch.on .knob { background:#3fb8a4; }
+    .switch.on .knob:after { transform:translateX(14px); }
+    .vol { flex:1; min-width:150px; display:flex; align-items:center; gap:10px; color:var(--muted); }
+    .vol input { flex:1; height:44px; accent-color:#61d9e8; }
+    .pnote { margin:0; color:var(--muted); font-size:12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     @media (orientation:portrait) {
       .content { padding-left:8vw; padding-right:8vw; }
       .time { font-size:clamp(62px,17vw,110px); }
@@ -164,6 +259,10 @@
     <div class="fish f2"><div class="tail"></div><div class="fin"></div><div class="body"></div><div class="stripe"></div><div class="eye"></div></div>
     <div class="fish f3"><div class="tail"></div><div class="fin"></div><div class="body"></div><div class="eye"></div></div>
     <div class="fish f4"><div class="tail"></div><div class="fin"></div><div class="body"></div><div class="eye"></div></div>
+    <!-- V3: two always-muted video layers for crossfades; sources come from library.js via player.js. -->
+    <video class="video-bg" id="video" muted playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
+    <video class="video-bg" id="videoB" muted playsinline preload="auto" disablepictureinpicture aria-hidden="true"></video>
+    <div class="vignette"></div>
     <div id="bubbles"></div>
   </main>
 
@@ -184,10 +283,26 @@
 
   <div class="hint" id="hint">Tap anywhere for controls</div>
   <nav class="controls" aria-label="Ambient controls">
+    <button class="control" id="playerButton">Player</button>
     <button class="control" id="clockButton">Clock on/off</button>
     <button class="control" id="motionButton">Motion on/off</button>
+    <button class="control" id="soundButton">Sound on</button>
     <button class="control" id="fullscreenButton">Full screen</button>
   </nav>
+  <!-- V3 player panel (rendered by player.js; audio elements are created there too). -->
+  <div class="player-scrim" id="playerScrim"></div>
+  <aside class="player" id="player" aria-label="Aquarium player" aria-hidden="true">
+    <header class="player-head">
+      <div class="player-tabs" role="tablist">
+        <button class="tab on" data-tab="video">Video</button>
+        <button class="tab" data-tab="music">Music</button>
+        <button class="tab" data-tab="ambience">Ambience</button>
+      </div>
+      <button class="player-close" id="playerClose" aria-label="Close player">✕</button>
+    </header>
+    <div class="player-body" id="playerBody"></div>
+    <footer class="player-foot" id="playerFoot"></footer>
+  </aside>
 
   <script>
     (() => {
@@ -198,16 +313,16 @@
       const ocean = document.getElementById('ocean');
       let controlsTimer;
 
+      // V2: formatters created once; DOM written only when text changes (once a minute).
+      const timeFmt = new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const dateFmt = new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
       function updateClock() {
         const now = new Date();
-        timeEl.textContent = new Intl.DateTimeFormat('vi-VN', {
-          hour: '2-digit', minute: '2-digit', hour12: false
-        }).format(now);
-        dateEl.textContent = new Intl.DateTimeFormat('vi-VN', {
-          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-        }).format(now).toLocaleUpperCase('vi-VN');
+        setText(timeEl, timeFmt.format(now));
+        setText(dateEl, dateFmt.format(now).toLocaleUpperCase('vi-VN'));
         const h = now.getHours();
-        greetingEl.textContent = h < 11 ? 'A peaceful morning' : h < 17 ? 'Drift through the afternoon' : 'A quiet evening';
+        setText(greetingEl, h < 11 ? 'A peaceful morning' : h < 17 ? 'Drift through the afternoon' : 'A quiet evening');
       }
       updateClock();
       setInterval(updateClock, 1000);
@@ -224,6 +339,8 @@
         bubbleHost.appendChild(b);
       }
 
+      // Video background, sound and the player panel live in player.js (V3).
+
       function revealControls() {
         body.classList.add('show-controls');
         clearTimeout(controlsTimer);
@@ -231,6 +348,7 @@
       }
       document.addEventListener('pointerdown', (event) => {
         if (event.target.closest('.controls')) { revealControls(); return; }
+        if (event.target.closest('.player, .player-scrim')) return;   // panel taps don't toggle the bar
         if (body.classList.contains('show-controls')) {
           body.classList.remove('show-controls');
           clearTimeout(controlsTimer);
@@ -245,9 +363,13 @@
         body.classList.toggle('motion-paused');
         const paused = body.classList.contains('motion-paused');
         ocean.querySelectorAll('*').forEach(el => el.style.animationPlayState = paused ? 'paused' : 'running');
+        if (window.aquariumPlayer) window.aquariumPlayer.setMotion(paused);
         document.getElementById('motionButton').textContent = paused ? 'Motion resume' : 'Motion pause';
         revealControls();
       });
+      document.getElementById('soundButton').addEventListener('click', revealControls);   // sound logic: player.js
+      document.getElementById('playerButton').addEventListener('click', revealControls); // panel logic: player.js
+
       document.getElementById('fullscreenButton').addEventListener('click', async () => {
         try {
           if (!document.fullscreenElement && document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
@@ -256,10 +378,27 @@
         revealControls();
       });
 
+      // ---- V2 screen wake lock (iPadOS 16.4+; feature-detected) ----
+      // Released automatically when the app is hidden, so re-request on return/tap.
+      // Unsupported devices rely on the iPad's Auto-Lock setting.
+      let wakeLock = null;
+      async function keepAwake() {
+        if (!('wakeLock' in navigator) || document.hidden || wakeLock) return;
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => { wakeLock = null; });
+        } catch (_) { /* denied or unsupported in this mode */ }
+      }
+      document.addEventListener('visibilitychange', keepAwake);
+      document.addEventListener('pointerdown', keepAwake);
+      keepAwake();
+
       if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
         window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
       }
     })();
   </script>
+  <script src="library.js"></script>
+  <script src="player.js"></script>
 </body>
 </html>
