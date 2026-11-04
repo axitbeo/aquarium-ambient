@@ -1,0 +1,15 @@
+{
+  "name": "Aquarium Ambient",
+  "short_name": "Aquarium",
+  "description": "A calm aquarium ambient display for iPad.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#061c2b",
+  "theme_color": "#061c2b",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}
